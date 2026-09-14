@@ -29,9 +29,10 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
+  # 不打 snap：GitHub 的 ubuntu runner 上没有 snapcraft，构建会直接失败，
+  # 而且它会往 Snap Store 发布。AppImage + deb 在 Ubuntu 上够用。
   target:
     - AppImage
-    - snap
     - deb
   maintainer: electronjs.org
   category: Utility
@@ -40,5 +41,9 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
+  # workflow 用 gh release create 建的是正式 release，这里的类型必须一致：
+  # electron-builder 默认按 draft 处理，不一致时会打印 "existing type not
+  # compatible with publishing type" 并跳过上传，产物就挂不到 release 上。
+  releaseType: release
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
