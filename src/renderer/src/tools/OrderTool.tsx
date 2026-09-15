@@ -84,7 +84,8 @@ function OrderTool(): React.JSX.Element {
     [result.numbers, base]
   )
 
-  const preview = sizes[format]
+  // 预览里按逗号断行方便肉眼核对；复制出去的仍是逗号分隔原样
+  const preview = sizes[format].replace(/,/g, ',\n')
 
   return (
     <div className={shared.root}>
