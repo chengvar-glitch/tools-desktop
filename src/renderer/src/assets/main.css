@@ -24,16 +24,12 @@ textarea {
   background: var(--color-scrollbar-thumb-hover);
 }
 
-.titlebar {
-  height: 40px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  background: var(--color-chrome);
+/* 没有独立标题栏：顶部 40px 由侧边栏/内容区各自的拖拽条承担 */
+.titlebar-drag {
   -webkit-app-region: drag;
 }
 
-/* 标题栏里的按钮要能点，必须退出拖拽区域 */
+/* 拖拽条里的按钮要能点，必须退出拖拽区域 */
 .titlebar-action {
   -webkit-app-region: no-drag;
 }

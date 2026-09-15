@@ -30,11 +30,12 @@ import JsonTool from '@/tools/JsonTool'
 import ColorTool from '@/tools/ColorTool'
 import PasswordTool from '@/tools/PasswordTool'
 import HashTool from '@/tools/HashTool'
+import AboutTool from '@/tools/AboutTool'
 
-// macOS 的 hiddenInset 会把红绿灯画在标题栏左上角，按钮要给它让出位置
+// macOS 的 hiddenInset 会把红绿灯画在窗口左上角，侧边栏顶部要给它让位
 const COLLAPSED_WIDTH = '56px'
+const TOP_STRIP_HEIGHT = '40px'
 const TRAFFIC_LIGHT_INSET = 84
-const PLAIN_INSET = 12
 const isMac = window.electron?.process?.platform === 'darwin'
 const isLinux = window.electron?.process?.platform === 'linux'
 
@@ -94,18 +95,28 @@ const tools: Tool[] = [
 
 const useStyles = makeStyles({
   app: {
+    position: 'relative',
     display: 'flex',
-    flexDirection: 'column',
-    height: '100vh'
+    height: '100vh',
+    overflow: 'hidden'
   },
-  titlebarButton: {
+  // 独立标题栏没有了：顶部 40px 是浮在侧边栏/内容上的拖拽条
+  topStrip: {
+    height: TOP_STRIP_HEIGHT,
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center'
+  },
+  toggleButton: {
     flexShrink: 0
   },
   winControls: {
-    marginLeft: 'auto',
-    flexShrink: 0,
-    display: 'flex',
-    alignSelf: 'stretch'
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 1,
+    height: TOP_STRIP_HEIGHT,
+    display: 'flex'
   },
   winControl: {
     width: '46px',
@@ -135,18 +146,13 @@ const useStyles = makeStyles({
       color: '#ffffff'
     }
   },
-  row: {
-    display: 'flex',
-    flex: 1,
-    minHeight: 0
-  },
   sidebar: {
     width: '200px',
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    padding: '16px 12px',
+    padding: '0 12px 16px',
     backgroundColor: 'var(--color-chrome)',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
     overflowY: 'auto',
@@ -155,7 +161,7 @@ const useStyles = makeStyles({
   },
   sidebarCollapsed: {
     width: COLLAPSED_WIDTH,
-    padding: '16px 4px',
+    padding: '0 4px 16px',
     alignItems: 'stretch'
   },
   sidebarTitle: {
@@ -167,13 +173,23 @@ const useStyles = makeStyles({
   },
   content: {
     flex: 1,
+    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
-    padding: '16px 20px 20px',
+    // 顶部留出拖拽条的空间，内容从这里开始，比独立标题栏少一层
+    padding: '12px 20px 20px',
+    paddingTop: '44px',
     minWidth: 0,
     minHeight: 0,
     overflow: 'hidden'
+  },
+  contentDrag: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: TOP_STRIP_HEIGHT
   },
   header: {
     display: 'flex',
@@ -206,6 +222,7 @@ function ToolBody({ id }: { id: string }): React.JSX.Element {
   if (id === 'color') return <ColorTool />
   if (id === 'password') return <PasswordTool />
   if (id === 'hash') return <HashTool />
+  if (id === 'about') return <AboutTool />
 
   return (
     <div className={styles.placeholder}>
@@ -220,101 +237,103 @@ function App(): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(false)
   const tool = tools.find((t) => t.id === selected) ?? tools[0]
   const toggleLabel = collapsed ? '展开菜单栏' : '收起菜单栏'
+  const toggleMaximize = isLinux ? () => window.api.toggleMaximizeWindow() : undefined
 
   return (
     <div className={styles.app}>
-      <header
-        className="titlebar"
-        style={{ paddingLeft: isMac ? TRAFFIC_LIGHT_INSET : PLAIN_INSET }}
-        // Linux 隐藏了原生标题栏，拖拽区双击的最大化/还原要自己做
-        onDoubleClick={isLinux ? () => window.api.toggleMaximizeWindow() : undefined}
-      >
-        <Tooltip content={toggleLabel} relationship="label">
-          <Button
-            className={mergeClasses('titlebar-action', styles.titlebarButton)}
-            appearance="subtle"
-            size="small"
-            icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
-            aria-label={toggleLabel}
-            onClick={() => setCollapsed((value) => !value)}
-          />
-        </Tooltip>
-        {isLinux && (
-          <div className={styles.winControls} onDoubleClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className={styles.winControl}
-              aria-label="最小化"
-              onClick={() => window.api.minimizeWindow()}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={styles.winControl}
-              aria-label="最大化/还原"
-              onClick={() => window.api.toggleMaximizeWindow()}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={mergeClasses(styles.winControl, styles.winClose)}
-              aria-label="关闭"
-              onClick={() => window.api.closeWindow()}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            </button>
-          </div>
+      <aside className={mergeClasses(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
+        <div
+          className={mergeClasses('titlebar-drag', styles.topStrip)}
+          style={{ paddingLeft: isMac && !collapsed ? TRAFFIC_LIGHT_INSET : 8 }}
+          onDoubleClick={toggleMaximize}
+        >
+          <Tooltip content={toggleLabel} relationship="label">
+            <Button
+              className={mergeClasses('titlebar-action', styles.toggleButton)}
+              appearance="subtle"
+              size="small"
+              icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
+              aria-label={toggleLabel}
+              onClick={() => setCollapsed((value) => !value)}
+            />
+          </Tooltip>
+        </div>
+        {!collapsed && (
+          <Text size={400} weight="semibold" className={styles.sidebarTitle} block>
+            工具箱
+          </Text>
         )}
-      </header>
-      <div className={styles.row}>
-        <aside className={mergeClasses(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
-          {!collapsed && (
-            <Text size={400} weight="semibold" className={styles.sidebarTitle} block>
-              工具箱
-            </Text>
-          )}
-          <TabList
-            vertical
-            className={collapsed ? styles.rail : undefined}
-            selectedValue={selected}
-            onTabSelect={(_, d) => setSelected(String(d.value))}
+        <TabList
+          vertical
+          className={collapsed ? styles.rail : undefined}
+          selectedValue={selected}
+          onTabSelect={(_, d) => setSelected(String(d.value))}
+        >
+          {tools.map((t) => {
+            const tab = (
+              <Tab key={t.id} value={t.id} icon={t.icon} aria-label={t.label}>
+                {collapsed ? null : t.label}
+              </Tab>
+            )
+            return collapsed ? (
+              <Tooltip key={t.id} content={t.label} relationship="label">
+                {tab}
+              </Tooltip>
+            ) : (
+              tab
+            )
+          })}
+        </TabList>
+      </aside>
+      <main className={styles.content}>
+        <div className={mergeClasses('titlebar-drag', styles.contentDrag)} onDoubleClick={toggleMaximize} />
+        <div className={styles.header}>
+          <Text size={500} weight="semibold">
+            {tool.label}
+          </Text>
+          <Text size={200}>{tool.desc}</Text>
+        </div>
+        <div className={styles.body}>
+          <ToolBody id={tool.id} />
+        </div>
+      </main>
+      {isLinux && (
+        <div
+          className={mergeClasses('titlebar-action', styles.winControls)}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className={styles.winControl}
+            aria-label="最小化"
+            onClick={() => window.api.minimizeWindow()}
           >
-            {tools.map((t) => {
-              const tab = (
-                <Tab key={t.id} value={t.id} icon={t.icon} aria-label={t.label}>
-                  {collapsed ? null : t.label}
-                </Tab>
-              )
-              return collapsed ? (
-                <Tooltip key={t.id} content={t.label} relationship="label">
-                  {tab}
-                </Tooltip>
-              ) : (
-                tab
-              )
-            })}
-          </TabList>
-        </aside>
-        <main className={styles.content}>
-          <div className={styles.header}>
-            <Text size={500} weight="semibold">
-              {tool.label}
-            </Text>
-            <Text size={200}>{tool.desc}</Text>
-          </div>
-          <div className={styles.body}>
-            <ToolBody id={tool.id} />
-          </div>
-        </main>
-      </div>
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles.winControl}
+            aria-label="最大化/还原"
+            onClick={() => window.api.toggleMaximizeWindow()}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={mergeClasses(styles.winControl, styles.winClose)}
+            aria-label="关闭"
+            onClick={() => window.api.closeWindow()}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
