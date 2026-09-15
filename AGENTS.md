@@ -69,5 +69,7 @@ Prettier（`.prettierrc.yaml`）：单引号、无分号、print width 100、无
 - `postinstall` 会跑 `electron-builder install-app-deps` — 原生依赖有变动时必须执行。
 - `resources/` 里的文件在 main 中以 `?asset` 后缀引入（如 `../../resources/icon.png?asset`），打包时会 asar-unpack。
 - 平台相关行为在 `src/main/index.ts`：macOS 上所有窗口关闭后 app 仍存活，点击 dock 会重建窗口；Linux 构建需要把图标传给 `BrowserWindow`。
-- 标题栏是 `App.tsx` 里的 `<header class="titlebar">`（40px，`-webkit-app-region: drag`）。macOS 用 `hiddenInset`，红绿灯画在左上角，所以按平台给标题栏留了 `paddingLeft`（macOS 84px），放在标题栏里的控件必须带 `.titlebar-action` 类（`no-drag`），否则点不动。
+- 顶部没有独立标题栏（Linux `titleBarStyle: 'hidden'` 自绘）：侧边栏和内容区各自顶部 40px 是拖拽条（`.titlebar-drag`），放在里面的控件必须带 `.titlebar-action` 类（`no-drag`）才能点。折叠按钮在侧边栏顶部条里，macOS `hiddenInset` 红绿灯占左上角，该条留了 84px `paddingLeft`；窗口控制按钮（最小化/最大化/关闭，走 `window:*` IPC）只在 Linux 渲染，浮在右上角。标题栏双击最大化是自绘的（`App.tsx`）。
+- Linux 上 `node_modules/**/electron/dist/chrome-sandbox` 必须是 root 属主 + 4755（setuid），否则 Electron 启动直接 FATAL abort（"SUID sandbox helper binary ... not configured correctly"），或表现为 GPU 子进程反复 launch 失败（error_code=1002）后 "GPU process isn't usable. Goodbye." 退出。`pnpm install` 或重装 Electron 会重置权限，需重新执行：`sudo chown root:root <path>/chrome-sandbox && sudo chmod 4755 <path>/chrome-sandbox`。
+- **不要用 `app.disableHardwareAcceleration()`**：本机（Wayland + 软件渲染）下它会让 `ready-to-show` 永不触发，而 `createWindow` 依赖该事件调 `show()`，窗口就永远不显示（进程还活着、页面也加载完了，只是没有窗口）。当初加它是为了绕开上面的 GPU 子进程崩溃，但那其实是 chrome-sandbox 权限问题——修权限，别禁硬件加速。
 - 自动更新脚手架已就位（`electron-updater` 依赖、`dev-app-update.yml`、`electron-builder.yml` 中的 appId `com.electron.app`）；main 中 AppUserModelId 设为 `com.electron`。
