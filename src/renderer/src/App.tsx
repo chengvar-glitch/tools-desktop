@@ -7,6 +7,7 @@ import {
   Tooltip,
   makeStyles,
   mergeClasses,
+  shorthands,
   tokens
 } from '@fluentui/react-components'
 import {
@@ -35,6 +36,7 @@ const COLLAPSED_WIDTH = '56px'
 const TRAFFIC_LIGHT_INSET = 84
 const PLAIN_INSET = 12
 const isMac = window.electron?.process?.platform === 'darwin'
+const isLinux = window.electron?.process?.platform === 'linux'
 
 interface Tool {
   id: string
@@ -98,6 +100,40 @@ const useStyles = makeStyles({
   },
   titlebarButton: {
     flexShrink: 0
+  },
+  winControls: {
+    marginLeft: 'auto',
+    flexShrink: 0,
+    display: 'flex',
+    alignSelf: 'stretch'
+  },
+  winControl: {
+    width: '46px',
+    display: 'grid',
+    placeItems: 'center',
+    border: 'none',
+    padding: '0',
+    background: 'transparent',
+    color: tokens.colorNeutralForeground2,
+    cursor: 'default',
+    ...shorthands.borderRadius('0'),
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      color: tokens.colorNeutralForeground1
+    },
+    ':active': {
+      backgroundColor: tokens.colorNeutralBackground1Pressed
+    }
+  },
+  winClose: {
+    ':hover': {
+      backgroundColor: '#e81123',
+      color: '#ffffff'
+    },
+    ':active': {
+      backgroundColor: '#f1707a',
+      color: '#ffffff'
+    }
   },
   row: {
     display: 'flex',
@@ -190,10 +226,12 @@ function App(): React.JSX.Element {
       <header
         className="titlebar"
         style={{ paddingLeft: isMac ? TRAFFIC_LIGHT_INSET : PLAIN_INSET }}
+        // Linux 隐藏了原生标题栏，拖拽区双击的最大化/还原要自己做
+        onDoubleClick={isLinux ? () => window.api.toggleMaximizeWindow() : undefined}
       >
         <Tooltip content={toggleLabel} relationship="label">
           <Button
-            className="titlebar-action"
+            className={mergeClasses('titlebar-action', styles.titlebarButton)}
             appearance="subtle"
             size="small"
             icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
@@ -201,6 +239,40 @@ function App(): React.JSX.Element {
             onClick={() => setCollapsed((value) => !value)}
           />
         </Tooltip>
+        {isLinux && (
+          <div className={styles.winControls} onDoubleClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.winControl}
+              aria-label="最小化"
+              onClick={() => window.api.minimizeWindow()}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={styles.winControl}
+              aria-label="最大化/还原"
+              onClick={() => window.api.toggleMaximizeWindow()}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={mergeClasses(styles.winControl, styles.winClose)}
+              aria-label="关闭"
+              onClick={() => window.api.closeWindow()}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1" />
+              </svg>
+            </button>
+          </div>
+        )}
       </header>
       <div className={styles.row}>
         <aside className={mergeClasses(styles.sidebar, collapsed && styles.sidebarCollapsed)}>

@@ -3,6 +3,13 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+// 纯表单/文本工具，不需要 GPU；禁掉硬件加速，避免 Wayland/驱动环境下
+// GPU 进程启动失败导致 "GPU process isn't usable. Goodbye." 闪退。
+// in-process-gpu 让 GPU 不再是独立子进程——本机 GPU 子进程偶发 launch 失败
+// （error_code=1002），重试 6 次耗尽后 Electron 会直接退出，这里从根上规避。
+app.disableHardwareAcceleration()
+app.commandLine.appendSwitch('in-process-gpu')
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -14,7 +21,8 @@ function createWindow(): void {
     autoHideMenuBar: true,
     backgroundColor: '#fafafa',
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const } : {}),
-    ...(process.platform === 'linux' ? { icon } : {}),
+    // Linux 也隐藏原生标题栏，由 renderer 自绘（工具 Tab + 窗口控制按钮）
+    ...(process.platform === 'linux' ? { titleBarStyle: 'hidden' as const, icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -62,6 +70,20 @@ app.whenReady().then(() => {
   ipcMain.handle('clipboard:write', (_event, text: string) => {
     clipboard.writeText(String(text ?? ''))
     return true
+  })
+
+  // Linux 自绘标题栏的窗口控制按钮
+  ipcMain.on('window:minimize', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  })
+  ipcMain.on('window:maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+  })
+  ipcMain.on('window:close', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close()
   })
 
   createWindow()

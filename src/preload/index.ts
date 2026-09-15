@@ -3,7 +3,10 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  writeClipboard: (text: string): Promise<boolean> => ipcRenderer.invoke('clipboard:write', text)
+  writeClipboard: (text: string): Promise<boolean> => ipcRenderer.invoke('clipboard:write', text),
+  minimizeWindow: (): void => ipcRenderer.send('window:minimize'),
+  toggleMaximizeWindow: (): void => ipcRenderer.send('window:maximize'),
+  closeWindow: (): void => ipcRenderer.send('window:close')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
