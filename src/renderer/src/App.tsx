@@ -107,8 +107,16 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center'
   },
-  toggleButton: {
-    flexShrink: 0
+  toggleFloat: {
+    position: 'absolute',
+    top: 0,
+    // macOS 的红绿灯占住左上角，按钮恒定贴在其右侧一格；其他平台顶到左上角。
+    // 用绝对定位，折叠/展开时按钮位置都不移动。
+    left: isMac ? `${TRAFFIC_LIGHT_INSET}px` : '8px',
+    height: TOP_STRIP_HEIGHT,
+    display: 'flex',
+    alignItems: 'center',
+    zIndex: 2
   },
   winControls: {
     position: 'absolute',
@@ -241,23 +249,22 @@ function App(): React.JSX.Element {
 
   return (
     <div className={styles.app}>
+      <div className={mergeClasses('titlebar-action', styles.toggleFloat)}>
+        <Tooltip content={toggleLabel} relationship="label">
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
+            aria-label={toggleLabel}
+            onClick={() => setCollapsed((value) => !value)}
+          />
+        </Tooltip>
+      </div>
       <aside className={mergeClasses(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
         <div
           className={mergeClasses('titlebar-drag', styles.topStrip)}
-          style={{ paddingLeft: isMac && !collapsed ? TRAFFIC_LIGHT_INSET : 8 }}
           onDoubleClick={toggleMaximize}
-        >
-          <Tooltip content={toggleLabel} relationship="label">
-            <Button
-              className={mergeClasses('titlebar-action', styles.toggleButton)}
-              appearance="subtle"
-              size="small"
-              icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
-              aria-label={toggleLabel}
-              onClick={() => setCollapsed((value) => !value)}
-            />
-          </Tooltip>
-        </div>
+        />
         {!collapsed && (
           <Text size={400} weight="semibold" className={styles.sidebarTitle} block>
             工具箱
@@ -286,7 +293,10 @@ function App(): React.JSX.Element {
         </TabList>
       </aside>
       <main className={styles.content}>
-        <div className={mergeClasses('titlebar-drag', styles.contentDrag)} onDoubleClick={toggleMaximize} />
+        <div
+          className={mergeClasses('titlebar-drag', styles.contentDrag)}
+          onDoubleClick={toggleMaximize}
+        />
         <div className={styles.header}>
           <Text size={500} weight="semibold">
             {tool.label}
