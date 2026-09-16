@@ -100,31 +100,30 @@ const useStyles = makeStyles({
     height: '100vh',
     overflow: 'hidden'
   },
-  // 独立标题栏没有了：顶部 40px 是浮在侧边栏/内容上的拖拽条
+  // 顶部 40px 是唯一的拖拽条，跨侧边栏与内容区浮在最上层。
+  // 所有控件都必须放进它里面：no-drag 只有在拖拽区的后代上才会被正确扣出，
+  // 与它兄弟关系又重叠的控件会被拖拽区吃掉（真实鼠标点击无反应）。
   topStrip: {
-    height: TOP_STRIP_HEIGHT,
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center'
-  },
-  toggleFloat: {
     position: 'absolute',
     top: 0,
-    // macOS 的红绿灯占住左上角，按钮恒定贴在其右侧一格；其他平台顶到左上角。
-    // 用绝对定位，折叠/展开时按钮位置都不移动。
-    left: isMac ? `${TRAFFIC_LIGHT_INSET}px` : '8px',
+    left: 0,
+    right: 0,
     height: TOP_STRIP_HEIGHT,
     display: 'flex',
     alignItems: 'center',
     zIndex: 2
   },
+  toggle: {
+    // macOS 的红绿灯占住左上角，按钮恒定贴在其右侧一格；其他平台顶到左上角。
+    // 位置只由平台决定，折叠/展开时都不移动。
+    marginLeft: isMac ? `${TRAFFIC_LIGHT_INSET}px` : '8px',
+    display: 'flex',
+    alignItems: 'center'
+  },
   winControls: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    zIndex: 1,
-    height: TOP_STRIP_HEIGHT,
-    display: 'flex'
+    marginLeft: 'auto',
+    display: 'flex',
+    alignSelf: 'stretch'
   },
   winControl: {
     width: '46px',
@@ -160,7 +159,8 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    padding: '0 12px 16px',
+    // 顶部让出拖拽条的高度（拖拽条是浮在上层的绝对定位元素）
+    padding: '40px 12px 16px',
     backgroundColor: 'var(--color-chrome)',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
     overflowY: 'auto',
@@ -169,7 +169,7 @@ const useStyles = makeStyles({
   },
   sidebarCollapsed: {
     width: COLLAPSED_WIDTH,
-    padding: '0 4px 16px',
+    padding: '40px 4px 16px',
     alignItems: 'stretch'
   },
   sidebarTitle: {
@@ -181,23 +181,14 @@ const useStyles = makeStyles({
   },
   content: {
     flex: 1,
-    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
-    // 顶部留出拖拽条的空间，内容从这里开始，比独立标题栏少一层
-    padding: '12px 20px 20px',
-    paddingTop: '44px',
+    // 顶部让出拖拽条的高度
+    padding: '44px 20px 20px',
     minWidth: 0,
     minHeight: 0,
     overflow: 'hidden'
-  },
-  contentDrag: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: TOP_STRIP_HEIGHT
   },
   header: {
     display: 'flex',
@@ -249,22 +240,63 @@ function App(): React.JSX.Element {
 
   return (
     <div className={styles.app}>
-      <div className={mergeClasses('titlebar-action', styles.toggleFloat)}>
-        <Tooltip content={toggleLabel} relationship="label">
-          <Button
-            appearance="subtle"
-            size="small"
-            icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
-            aria-label={toggleLabel}
-            onClick={() => setCollapsed((value) => !value)}
-          />
-        </Tooltip>
+      <div
+        className={mergeClasses('titlebar-drag', styles.topStrip)}
+        onDoubleClick={toggleMaximize}
+      >
+        <div
+          className={mergeClasses('titlebar-action', styles.toggle)}
+          onDoubleClick={(event) => event.stopPropagation()}
+        >
+          <Tooltip content={toggleLabel} relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
+              aria-label={toggleLabel}
+              onClick={() => setCollapsed((value) => !value)}
+            />
+          </Tooltip>
+        </div>
+        {isLinux && (
+          <div
+            className={mergeClasses('titlebar-action', styles.winControls)}
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.winControl}
+              aria-label="最小化"
+              onClick={() => window.api.minimizeWindow()}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={styles.winControl}
+              aria-label="最大化/还原"
+              onClick={() => window.api.toggleMaximizeWindow()}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={mergeClasses(styles.winControl, styles.winClose)}
+              aria-label="关闭"
+              onClick={() => window.api.closeWindow()}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
       <aside className={mergeClasses(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
-        <div
-          className={mergeClasses('titlebar-drag', styles.topStrip)}
-          onDoubleClick={toggleMaximize}
-        />
         {!collapsed && (
           <Text size={400} weight="semibold" className={styles.sidebarTitle} block>
             工具箱
@@ -293,10 +325,6 @@ function App(): React.JSX.Element {
         </TabList>
       </aside>
       <main className={styles.content}>
-        <div
-          className={mergeClasses('titlebar-drag', styles.contentDrag)}
-          onDoubleClick={toggleMaximize}
-        />
         <div className={styles.header}>
           <Text size={500} weight="semibold">
             {tool.label}
@@ -307,43 +335,6 @@ function App(): React.JSX.Element {
           <ToolBody id={tool.id} />
         </div>
       </main>
-      {isLinux && (
-        <div
-          className={mergeClasses('titlebar-action', styles.winControls)}
-          onDoubleClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            className={styles.winControl}
-            aria-label="最小化"
-            onClick={() => window.api.minimizeWindow()}
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={styles.winControl}
-            aria-label="最大化/还原"
-            onClick={() => window.api.toggleMaximizeWindow()}
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={mergeClasses(styles.winControl, styles.winClose)}
-            aria-label="关闭"
-            onClick={() => window.api.closeWindow()}
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1" />
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
   )
 }
