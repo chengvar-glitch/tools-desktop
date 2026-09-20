@@ -1,9 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+// 只借类型，编译后不留运行时依赖
+import type { PublicIpResult } from '../main/publicIp'
 
 // Custom APIs for renderer
 const api = {
   writeClipboard: (text: string): Promise<boolean> => ipcRenderer.invoke('clipboard:write', text),
+  getPublicIp: (): Promise<PublicIpResult> => ipcRenderer.invoke('net:publicIp'),
   minimizeWindow: (): void => ipcRenderer.send('window:minimize'),
   toggleMaximizeWindow: (): void => ipcRenderer.send('window:maximize'),
   closeWindow: (): void => ipcRenderer.send('window:close')

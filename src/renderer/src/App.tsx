@@ -16,6 +16,7 @@ import {
   ColorRegular,
   DocumentTextRegular,
   KeyRegular,
+  NetworkCheckRegular,
   NumberSymbolRegular,
   PanelLeftContractRegular,
   PanelLeftExpandRegular,
@@ -30,6 +31,8 @@ import JsonTool from '@/tools/JsonTool'
 import ColorTool from '@/tools/ColorTool'
 import PasswordTool from '@/tools/PasswordTool'
 import HashTool from '@/tools/HashTool'
+import RegexTool from '@/tools/RegexTool'
+import IpTool from '@/tools/IpTool'
 import AboutTool from '@/tools/AboutTool'
 
 // macOS 的 hiddenInset 会把红绿灯画在窗口左上角，侧边栏顶部要给它让位
@@ -89,7 +92,18 @@ const tools: Tool[] = [
     icon: <ShieldKeyholeRegular />,
     desc: 'MD5 / SHA 系列哈希计算，Base64 编解码（UTF-8 安全）。'
   },
-  { id: 'regex', label: '正则测试', icon: <SearchRegular />, desc: '正则表达式实时匹配测试。' },
+  {
+    id: 'regex',
+    label: '正则测试',
+    icon: <SearchRegular />,
+    desc: '正则实时匹配、分组明细与高亮，支持替换预览。'
+  },
+  {
+    id: 'ip',
+    label: 'IP 工具',
+    icon: <NetworkCheckRegular />,
+    desc: 'IP/CIDR 解析：掩码、网络与广播地址、可用范围、地址类型，含包含判断。'
+  },
   { id: 'about', label: '关于', icon: <SettingsRegular />, desc: '个人工具集合桌面版。' }
 ]
 
@@ -221,6 +235,8 @@ function ToolBody({ id }: { id: string }): React.JSX.Element {
   if (id === 'color') return <ColorTool />
   if (id === 'password') return <PasswordTool />
   if (id === 'hash') return <HashTool />
+  if (id === 'regex') return <RegexTool />
+  if (id === 'ip') return <IpTool />
   if (id === 'about') return <AboutTool />
 
   return (

@@ -1,7 +1,8 @@
-import { app, shell, BrowserWindow, clipboard, ipcMain, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, clipboard, ipcMain, nativeTheme, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { fetchPublicIp } from './publicIp'
 
 function createWindow(): void {
   // Create the browser window.
@@ -64,6 +65,10 @@ app.whenReady().then(() => {
     clipboard.writeText(String(text ?? ''))
     return true
   })
+
+  // 公网 IP 走 main 请求（renderer 的 CSP 不允许直连外网）。
+  // 用 net.fetch 而不是 Node 的 fetch：走 Chromium 网络栈，系统代理设置也生效。
+  ipcMain.handle('net:publicIp', () => fetchPublicIp((url, init) => net.fetch(url, init)))
 
   // Linux 自绘标题栏的窗口控制按钮
   ipcMain.on('window:minimize', (event) => {

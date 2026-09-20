@@ -1,6 +1,6 @@
 {
   "name": "tools-desktop",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "gvar",
@@ -12,6 +12,8 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "check:regex": "node --no-warnings scripts/regex-check.mjs",
+    "check:ip": "node --no-warnings scripts/ip-check.mjs",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
