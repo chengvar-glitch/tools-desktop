@@ -4,7 +4,7 @@
 
 ## 项目
 
-`tools-desktop` 是一个 Electron 桌面应用，基于 [electron-vite](https://electron-vite.org)、React 19 和 TypeScript 构建。包管理器用 **pnpm**（有 pnpm-lock.yaml + pnpm-workspace.yaml），不要用 npm/yarn。本目录不是 git 仓库。
+`tools-desktop` 是一个 Electron 桌面应用，基于 [electron-vite](https://electron-vite.org)、React 19 和 TypeScript 构建。包管理器用 **pnpm**（有 pnpm-lock.yaml + pnpm-workspace.yaml），不要用 npm/yarn。本目录是 git 仓库，远程为 `origin`（github.com/chengvar-glitch/tools-desktop），主分支 `main`。
 
 ## 常用命令
 

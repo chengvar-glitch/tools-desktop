@@ -13,6 +13,8 @@ asarUnpack:
   - resources/**
 win:
   executableName: tools-desktop
+  # 由 resources/icon-src/generate_icon.py 生成，改图标后重跑该脚本
+  icon: build/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -22,6 +24,7 @@ mac:
   # 只出 dmg；默认还会打个 zip（macOS 自动更新用），用不到就不出
   target:
     - dmg
+  icon: build/icon.icns
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -37,6 +40,8 @@ linux:
   target:
     - AppImage
     - deb
+  # 目录内为 <尺寸>x<尺寸>.png（16..1024），deb 会铺到 hicolor 各档
+  icon: build/icons
   maintainer: electronjs.org
   category: Utility
 appImage:
