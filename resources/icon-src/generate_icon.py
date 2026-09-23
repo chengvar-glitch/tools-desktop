@@ -38,8 +38,8 @@ def px(v: float) -> float:
     return v * S
 
 
-CARD = (px(60), px(60), px(964), px(964))
-CARD_RADIUS = px(212)
+CARD = (px(0), px(0), px(1024), px(1024))
+CARD_RADIUS = px(232)
 
 # diagonal gradient stops, top-left -> bottom-right
 CARD_STOPS = [
@@ -136,12 +136,12 @@ def build_master() -> Image.Image:
 
     # -- card base: diagonal gradient + glows + sheen, clipped to the card
     base = diag_gradient(size, CARD, CARD_STOPS).convert('RGBA')
+    base.putalpha(card_mask)  # 圆角外的四角保持透明，否则整张图是方块
     for cx, cy, radius, color, alpha in (GLOW_CYAN, GLOW_VIOLET):
         base.alpha_composite(scaled_alpha(radial_glow(size, cx, cy, radius, color, alpha), card_mask))
 
     sheen = Image.new('RGBA', size, (0, 0, 0, 0))
     top, bottom = CARD[1], CARD[1] + (CARD[3] - CARD[1]) * SHEEN_EXTENT
-    sw = sheen.split()
     ramp = np.zeros((B, B), np.uint8)
     rows = np.arange(B, dtype=np.float64)[:, None]
     a = np.clip((bottom - rows) / (bottom - top), 0.0, 1.0) ** 1.3 * SHEEN_ALPHA
